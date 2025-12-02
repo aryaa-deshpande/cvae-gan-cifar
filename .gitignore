@@ -205,3 +205,38 @@ cython_debug/
 marimo/_static/
 marimo/_lsp/
 __marimo__/
+
+
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+*.log
+
+# Virtual Environment
+venv/
+env/
+
+# PyTorch checkpoints
+*.pt
+*.pth
+
+# Datasets
+data/
+datasets/
+
+# MacOS crap
+.DS_Store
+
+# Jupyter
+.ipynb_checkpoints/
+
+# PyCharm / VSCode
+.idea/
+.vscode/
+
+# User logs
+logs/
+runs/
