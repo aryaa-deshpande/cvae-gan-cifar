@@ -21,15 +21,14 @@ def get_cifar100_dataloaders(
     - Splits the original train set into train/val subsets
     """
     # Standard CIFAR-100 normalization values (approximate)
-    transform = transforms.Compose(
-        [
-            transforms.ToTensor(),
-            transforms.Normalize(
-                mean=(0.5071, 0.4867, 0.4408),
-                std=(0.2675, 0.2565, 0.2761),
-            ),
-        ]
-    )
+    transform = transforms.Compose([
+        transforms.ToTensor(),
+        # Map [0,1] -> [-1,1] to match generator's Tanh output
+        transforms.Normalize(
+            mean=(0.5, 0.5, 0.5),
+            std=(0.5, 0.5, 0.5),
+        ),
+    ])
 
     # Full training dataset
     full_train = datasets.CIFAR100(
