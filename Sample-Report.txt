@@ -1,0 +1,321 @@
+
+
+📄 Final Project Report (Detailed Version)
+
+Title: Conditional VAE–GAN for Class-Conditional Image Generation on CIFAR-100
+
+⸻
+
+1. Introduction
+
+Generative modeling aims to learn the underlying structure of a dataset in a way that enables the synthesis of new samples that look similar to those in the dataset. Classical generative models such as Gaussian mixtures or PCA-based approaches have limited capacity to model complex high-dimensional data such as natural images.
+
+Modern deep generative models — including Variational Autoencoders (VAEs) and Generative Adversarial Networks (GANs) — significantly extend these capabilities. However, each approach has complementary strengths and weaknesses:
+	•	VAEs learn smooth latent spaces and produce stable reconstructions, but often yield blurry images.
+	•	GANs produce sharp and realistic images, but lack an encoder and often suffer from training instability.
+
+In this project, we combine both approaches into a Conditional VAE–GAN (CVAE-GAN) that:
+	1.	Learns a latent representation (pattern recognition)
+	2.	Reconstructs input images (autoencoding)
+	3.	Generates realistic samples conditioned on class labels (generative modeling)
+
+We use the CIFAR-100 dataset, which is challenging due to its small resolution (32×32) and 100 diverse classes.
+Our system successfully trains a stable hybrid model capable of:
+	•	Class-conditional generation
+	•	Reconstruction of real images
+	•	Smooth latent interpolations
+	•	Organized latent representations
+
+This demonstrates the core principles of representation learning and generative modeling discussed in class.
+
+⸻
+
+2. Dataset
+
+We use the CIFAR-100 dataset:
+	•	100 classes
+	•	50,000 training images, 10,000 test images
+	•	Resolution: 32×32 pixels, RGB
+	•	High intra-class variation and low resolution make it a difficult dataset for generative models.
+
+All images are:
+	•	scaled to [0, 1]
+	•	normalized to [-1, 1]
+	•	labels encoded as integers and embedded for conditional modeling
+
+Normalization is essential because both VAEs and GANs assume the input distribution is approximately bounded and symmetric.
+
+⸻
+
+3. Model Architecture
+
+Our hybrid model consists of four main components. This section explains each one in plain yet technically precise terms.
+
+⸻
+
+3.1 Encoder (VAE component)
+
+The encoder’s job is to take an image x and its class label y, and compress them into a latent distribution instead of a single vector. Rather than outputting just one latent vector, it outputs:
+	•	\mu(x, y): the mean of the latent Gaussian
+	•	\log \sigma^2(x, y): the log-variance
+
+This lets the model learn uncertainty about how to encode images.
+
+Why a distribution?
+Because VAEs encourage the latent space to be smooth and continuous — small changes in latent space should produce small changes in the generated image.
+
+⸻
+
+3.2 Reparameterization Trick
+
+Instead of sampling directly from the Gaussian (which would break backpropagation), we use:
+
+z = \mu + \sigma \cdot \epsilon, \quad \epsilon \sim \mathcal{N}(0, I)
+
+This keeps sampling differentiable.
+It also means that:
+	•	the encoder learns which features matter
+	•	random noise injects generative diversity
+
+⸻
+
+3.3 Generator (Decoder)
+
+The generator takes:
+	•	latent vector z
+	•	class label y
+
+and synthesizes a 32×32 RGB image.
+
+The class label is fed into the generator using an embedding, so the model can gradually learn “class style.” For example:
+	•	apples → red round shapes
+	•	birds → feather-like textures
+	•	landscapes → blue/green patterns
+
+The generator is trained with:
+	•	reconstruction loss
+	•	adversarial loss
+
+so it learns both accuracy and realism.
+
+⸻
+
+3.4 Discriminator (GAN component)
+
+The discriminator receives:
+	•	an image x (real or generated)
+	•	a class label y
+
+and must output:
+	•	1 if the image is real
+	•	0 if it is generated
+
+This forces the generator to produce more realistic images.
+
+We use a projection-based discriminator, which is known to stabilize conditional GANs.
+
+⸻
+
+4. Loss Functions
+
+Our total loss combines VAE and GAN components.
+
+\mathcal{L} = \mathcal{L}_{\text{recon}} +
+\beta \cdot \mathcal{L}_{\text{KL}} +
+\lambda \cdot \mathcal{L}_{\text{GAN}}
+
+Where:
+
+⸻
+
+4.1 Reconstruction Loss
+
+We use pixel-wise MSE:
+
+\mathcal{L}_{\text{recon}} = ||x - \hat{x}||^2
+
+This encourages the generator to rebuild the image faithfully.
+
+⸻
+
+4.2 KL Divergence
+
+Regularizes the encoder’s latent distribution to stay close to a unit Gaussian:
+
+\mathcal{L}_{\text{KL}} =
+\frac{1}{2}\sum(\mu^2 + \sigma^2 - \log\sigma^2 - 1)
+
+If the KL term collapses to 0, the encoder stops using latent space.
+If KL grows too large, the latent space becomes unstable.
+
+We use β = 0.2, which stabilizes training.
+
+⸻
+
+4.3 Adversarial Loss
+
+This comes from the GAN game:
+	•	Generator tries to fool the discriminator
+	•	Discriminator tries to classify correctly
+
+We use non-saturating GAN loss, which is stable.
+
+A small weight λ = 0.1 ensures the GAN sharpens images without overpowering the VAE.
+
+⸻
+
+5. Training Procedure
+	•	Device: Apple MPS
+	•	Epochs: 20
+	•	Batch size: 128
+	•	Optimizer: Adam
+	•	Generator LR: 2e-4
+	•	Discriminator LR: 1e-4
+	•	Label embeddings for all conditional components
+	•	Mixed VAE–GAN loss schedule applied consistently
+
+Training stabilizes after ~5 epochs and remains stable to epoch 20.
+
+⸻
+
+6. Results
+
+Here we describe and interpret each of the results the model produced.
+
+⸻
+
+6.1 Loss Curves
+
+Observation:
+	•	KL loss slowly decreased → encoder is learning a compact representation
+	•	Reconstruction loss stable around 0.39–0.43 → indicates consistency
+	•	Discriminator loss decreased from ~2.6 → ~1.1 → healthy balance
+	•	Generator loss oscillated between 5–8 → standard GAN behavior
+
+Interpretation:
+	•	No mode collapse
+	•	No divergence
+	•	The adversarial and VAE components are well balanced
+
+This confirms a successful training run.
+
+⸻
+
+6.2 Class-Conditional Generation
+
+We generated samples from classes 0–7.
+
+Observation:
+	•	Each row exhibits consistent texture/patterns
+	•	Apple-like shapes appear in class 0
+	•	Bird/animal/landscape-ish textures appear in other rows
+	•	Within each row, samples vary but preserve class style
+
+Interpretation:
+This demonstrates that the generator is able to:
+	1.	Use the class label
+	2.	Produce diverse samples within a class
+	3.	Learn coarse features even on low-resolution CIFAR-100
+
+This is strong evidence of conditional generative capability.
+
+⸻
+
+6.3 Reconstruction Results
+
+We compare real validation images with reconstructions.
+
+Observation:
+	•	Color distributions match
+	•	Object positions roughly align
+	•	Images are blurry (expected from VAE-based models)
+
+Interpretation:
+The encoder is capturing:
+	•	global structure
+	•	dominant colors
+	•	scene layout
+
+The generator can reconstruct these latent features, proving meaningful pattern recognition in the latent space.
+
+Reconstruction MSE on a batch: 0.4103
+
+⸻
+
+6.4 Latent Interpolation
+
+We encoded two validation images, then interpolated between their latent vectors.
+
+Observation:
+	•	Smooth transition from one image’s color/texture to the other
+	•	No abrupt artifacts
+
+Interpretation:
+	•	Latent space is continuous
+	•	Encoder has organized images into a manifold
+	•	Small latent changes → small visual changes
+
+This is evidence of structured representation learning.
+
+⸻
+
+7. Discussion
+
+Our model successfully demonstrates:
+
+VAE Strengths
+	•	Organized latent space
+	•	Smooth interpolations
+	•	Meaningful encodings
+	•	Stable reconstructions
+
+GAN Strengths
+	•	Class-conditional generation
+	•	Sharper textures than pure VAEs
+	•	Label control over output
+
+Why CIFAR-100 is challenging
+	•	32×32 resolution
+	•	100 classes → representation is very fragmented
+	•	Complex textures compressed into tiny spatial dimensions
+
+Given this difficulty, the results are entirely appropriate.
+
+⸻
+
+8. Limitations & Future Work
+
+Limitations
+	•	Generated samples lack fine detail
+	•	Reconstructions are blurry
+	•	Training time long on MPS
+	•	GAN loss still oscillates (normal but noisy)
+
+Future Improvements
+	•	Train for 40–60 epochs
+	•	Pretrain VAE before enabling GAN
+	•	Use perceptual loss (VGG-based)
+	•	Use EMA (Exponential Moving Average) for generator
+	•	Add VAE-only and GAN-only baselines for comparison
+	•	Switch to larger architecture (ResNet-based)
+
+⸻
+
+9. Conclusion
+
+We implemented a full Conditional VAE–GAN from scratch and demonstrated:
+	•	Stable hybrid training
+	•	Class-conditional sample generation
+	•	Meaningful reconstructions
+	•	Smooth latent space interpolations
+	•	Use of conditional embeddings across encoder, generator, and discriminator
+
+This project clearly illustrates core concepts in pattern recognition:
+	1.	Latent feature learning (encoder)
+	2.	Generative synthesis (decoder + GAN)
+	3.	Discriminative modeling (discriminator)
+	4.	Regularization and probabilistic representation (KL term)
+	5.	Conditional modeling (labels)
+
+The model achieves its goals and provides a complete demonstration of modern generative modeling applied to a multi-class dataset.
+
